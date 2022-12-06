@@ -7,7 +7,7 @@ syms k_psi_e k_omx k_sigm s
 H = 5;
 M = 0.6;
 V = 192;
-Zb = -0.2;
+Zb = 0.2;
 sin = 0.08;
 cos = 1;
 g_del_V = 0.051;
@@ -79,28 +79,84 @@ pretty(num)
 disp('Знаменатель ПФ')
 pretty(den)
 
-% Запишем неравенства ждя критерия Рауса
-eq1 = A0 > 0;
-eq2 = A1 > 0;
-eq3 = A2 > 0;
-eq4 = A3 > 0;
-eq5 = A4 > 0;
-eq6 = A5 > 0;
-eq7 = simplify((A1*A2-A0*A3)*(A3*A4-A2*A5) - (A1*A4-A0*A5)^2) > 0;
+% Запишем неравенства для достаточного условия устойчивости
+lambd_star = 2.15; % Желаемое значение лямбды
+eq1d = A0^(-1) * A1 * A2 * A3^(-1) >= lambd_star;
+eq2d = A1^(-1) * A2 * A3 * A4^(-1) >= lambd_star;
+eq3d = A2^(-1) * A3 * A4 * A5^(-1) >= lambd_star;
+
 
 % Преобразуем неравенства из символьного типа данных в функции
-eq1 = matlabFunction(eq1);
-eq2 = matlabFunction(eq2);
-eq3 = matlabFunction(eq3);
-eq4 = matlabFunction(eq4);
-eq5 = matlabFunction(eq5);
-eq6 = matlabFunction(eq6);
-eq7 = matlabFunction(eq7);
+eq1d = matlabFunction(eq1d);
+eq2d = matlabFunction(eq2d);
+eq3d = matlabFunction(eq3d);
 
 % Задание сетки
-ko = [-1:0.05:4];
+ko = [-1:0.05:8];
 ks = [-1:0.05:20];
-kp = [-1:0.5:300];
+kp = [0.1:0.5:300];
+
+disp('Строим график по достаточным условиям устойчивости')
+% Построение трехмерного графика
+% Задаём k_omega
+% Строим плоскую область для параметров k_omega, k_sigma
+% Прибавляет к параметру k_psi шаг
+% Повторяем действия
+% Таким образом - получится много плоских рисунков,
+% которые в сумме будут давать пространство устойчивости
+figure;
+hold on
+grid on
+view(3)
+colors = {'red', 'yellow'};
+tic % Начинаем считать время
+for i=1:length(kp)
+    X = [];
+    Y = [];
+    Z = [];
+    ind = 1;
+    for j=1:length(ko)
+        for k=1:length(ks)
+            c1 = eq1d(ko(j), kp(i), ks(k));
+            c2 = eq2d(ko(j), ks(k));
+            c3 = eq3d(ko(j));
+            if  c1 & c2 & c3
+                X(ind) = ko(j);
+                Y(ind) = ks(k);
+                Z(ind) = kp(i);
+                ind = ind + 1;
+            end
+        end
+    end
+    col = colors(randi([1, length(colors)]));
+    col = string(col);
+    plot3(X, Y, Z, Color=col)
+end
+toc % Заканчиваем считать время
+
+
+% Запишем неравенства ждя критерия Рауса
+eq1r = A0 > 0;
+eq2r = A1 > 0;
+eq3r = A2 > 0;
+eq4r = A3 > 0;
+eq5r = A4 > 0;
+eq6r = A5 > 0;
+eq7r = simplify((A1*A2-A0*A3)*(A3*A4-A2*A5) - (A1*A4-A0*A5)^2) > 0;
+
+% Преобразуем неравенства из символьного типа данных в функции
+eq1r = matlabFunction(eq1r);
+eq2r = matlabFunction(eq2r);
+eq3r = matlabFunction(eq3r);
+eq4r = matlabFunction(eq4r);
+eq5r = matlabFunction(eq5r);
+eq6r = matlabFunction(eq6r);
+eq7r = matlabFunction(eq7r);
+
+% Задание сетки
+ko = [-1:0.1:4];
+ks = [-1:0.1:20];
+kp = [0.1:30:300];
 
 % Построение трехмерного графика
 % Задаём k_omega
@@ -112,30 +168,37 @@ kp = [-1:0.5:300];
 hold on
 grid on
 view(3)
-for i=1:length(ko)
+colors = {'green', 'blue'};
+disp('Строим график по критериям Рауса')
+tic % Начинаем считать время
+for i=1:length(kp)
     X = [];
     Y = [];
     Z = [];
     ind = 1;
-    for j=1:length(ks)
-        for k=1:length(kp)
-            c1 = eq1(kp(k));
-            c2 = eq2(ks(j));
-            c3 = eq3(ko(i));
-            c4 = eq4();
-            c5 = eq5();
-            c6 = eq6();
-            c7 = eq7(ko(i), kp(k), ks(j));
+    for j=1:length(ko)
+        for k=1:length(ks)
+            c1 = eq1r(kp(i));
+            c2 = eq2r(ks(k));
+            c3 = eq3r(ko(j));
+            c4 = eq4r();
+            c5 = eq5r();
+            c6 = eq6r();
+            c7 = eq7r(ko(j), kp(i), ks(k));
             if  c1 & c2 & c3 & c4 & c5 & c6 & c7
-                X(ind) = ko(i);
-                Y(ind) = ks(j);
-                Z(ind) = kp(k);
+                X(ind) = ko(j);
+                Y(ind) = ks(k);
+                Z(ind) = kp(i);
                 ind = ind + 1;
             end
         end
     end
-    plot3(X, Y, Z)
+    col = colors(randi([1, length(colors)]));
+    col = string(col);
+    plot3(X, Y, Z, Color=col)
 end
+toc % Заканчиваем считать время
 xlabel('Komx')
 ylabel('Ksigm')
 zlabel('Kpsie')
+hold off

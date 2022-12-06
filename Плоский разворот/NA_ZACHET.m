@@ -55,6 +55,7 @@ koefs_den = vpa(koefs_den / starsh_koef);
 koefs_num = rot90(rot90(koefs_num));
 koefs_den = rot90(rot90(koefs_den));
 
+
 % Преобразованные коэффициенты передаточной функции
 B1 = koefs_num(1);
 B0 = koefs_num(2);
@@ -65,53 +66,66 @@ A2 = koefs_den(4);
 A1 = koefs_den(5);
 A0 = koefs_den(6);
 
-% Передаточная функция в нормальном виде (старший коэффициент знаменателя
-% равен 1
-num = (B1*s + B0);
-den = (A5*s^5 + A4*s^4 + A3*s^3 + A2*s^2 + A1*s + A0);
-PF = (num / den);
-disp('Числитель ПФ')
-pretty(num)
-disp('Знаменатель ПФ')
-pretty(den)
 
-% Запишем неравенства для критерия Рауса
-eq1 = A0 > 0;
-eq2 = A1 > 0;
-eq3 = A2 > 0;
-eq4 = A3 > 0;
-eq5 = A4 > 0;
-eq6 = A5 > 0;
-eq7 = simplify((A1*A2-A0*A3)*(A3*A4-A2*A5) - (A1*A4-A0*A5)^2) > 0;
+% Запишем неравенства для достаточных условий устойчивости через лямбды
+lambd_star = 2.15;
+eq1d = A0^(-1) * A1 * A2 * A3^(-1) >= lambd_star;
+eq2d = A1^(-1) * A2 * A3 * A4^(-1) >= lambd_star;
+eq3d = A2^(-1) * A3 * A4 * A5^(-1) >= lambd_star;
+
 
 % Преобразуем неравенства из символьного типа данных в функции
-eq1 = matlabFunction(eq1);
-eq2 = matlabFunction(eq2);
-eq3 = matlabFunction(eq3);
-eq4 = matlabFunction(eq4);
-eq5 = matlabFunction(eq5);
-eq6 = matlabFunction(eq6);
-eq7 = matlabFunction(eq7);
+eq1d = matlabFunction(eq1d);
+eq2d = matlabFunction(eq2d);
+eq3d = matlabFunction(eq3d);
+
+% Запишем неравенства для критерия Рауса
+eq1r = A0 > 0;
+eq2r = A1 > 0;
+eq3r = A2 > 0;
+eq4r = A3 > 0;
+eq5r = A4 > 0;
+eq6r = A5 > 0;
+eq7r = simplify((A1*A2-A0*A3)*(A3*A4-A2*A5) - (A1*A4-A0*A5)^2) > 0;
+
+% Преобразуем неравенства из символьного типа данных в функции
+eq1r = matlabFunction(eq1r);
+eq2r = matlabFunction(eq2r);
+eq3r = matlabFunction(eq3r);
+eq4r = matlabFunction(eq4r);
+eq5r = matlabFunction(eq5r);
+eq6r = matlabFunction(eq6r);
+eq7r = matlabFunction(eq7r);
 
 % Задание сетки
-l1 = [-2:0.05:50];
-l2 = [-2:0.05:50];
+l1 = [-2:0.01:20];
+l2 = [-2:0.01:45];
 [ko, kp] = meshgrid(l1, l2);
 
-% Проверка устойчивости узлов сетки
-c1 = eq1(kp);
-c2 = eq2(kp, ko);
-c3 = eq3(ko);
-c4 = eq4();
-c5 = eq5();
-c6 = eq6();
-c7 = eq7(kp, ko);
 
-% Построение области устойчивости
+% Проверка устойчивости узлов сетки на достаточные условия устойчивости
+c1d = eq1d(kp, ko);
+c2d = eq2d(kp, ko);
+c3d = eq3d(ko);
+
+% Проверка устойчивости узлов сетки по критерию Рауса
+c1r = eq1r(kp);
+c2r = eq2r(kp, ko);
+c3r = eq3r(ko);
+c4r = eq4r();
+c5r = eq5r();
+c6r = eq6r();
+c7r = eq7r(kp, ko);
+
 figure;
-contourf(l1, l2, c1 & c2 & c3 & c4 & c5 & c6 & c7, [1 1 1 1 1 1 1])
-colormap lines
+grid on
 hold on
+% Контур для области устойчивости по критерию Рауса
+contourf(l1, l2, c1r & c2r & c3r & c4r & c5r & c6r & c7r, [1 1 1 1 1 1 1], FaceAlpha=0.5, FaceColor="red")
+% Контур для области устойчивости по достаточным условиям устойчивости
+contourf(l1, l2, c1d & c2d & c3d, [1 1 1],  FaceAlpha=0.5, FaceColor="blue")
+title('Красная область - достаточные условия устойчивости. Синяя область - критерий Рауса')
+
 % Синтезированные коэффициенты
 k_omegay = 2.7468;
 k_psi = 9.0425;
@@ -119,7 +133,7 @@ pnt1 = scatter(k_omegay, k_psi,'r','filled');
 % Подобранные коэффициенты
 k_omegay = 2.8172;
 k_psi = 9.0425;
-pnt2 = scatter(k_omegay, k_psi, 'b','filled');
+pnt2 = scatter(k_omegay, k_psi, 'y','filled');
 legend([pnt1, pnt2],"Синтезированные коэффициенты", "Подобранные коэффициенты")
 hold off
 xlabel("Komy")
